@@ -130,14 +130,15 @@ namespace liq
                     int nx = x + dx, ny = y + dy;
                     if (field[nx][ny] != '#' && last_use[nx][ny] < UT) {
                         VType cap = velocity.get(x, y, dx, dy);
-                        VType flow = velocity_flow.get(x, y, dx, dy);
+                        VType flow = (VType)velocity_flow.get(x, y, dx, dy);
+                        // cout << flow << " " << cap << endl;
                         if (flow == cap) {
                             continue;
                         }
                         // assert(v >= velocity_flow.get(x, y, dx, dy));
                         auto vp = min(lim, cap - flow);
                         if (last_use[nx][ny] == UT - 1) {
-                            velocity_flow.add(x, y, dx, dy, vp);
+                            velocity_flow.add(x, y, dx, dy, (VFType)vp);
                             last_use[x][y] = UT;
                             // cerr << x << " " << y << " -> " << nx << " " << ny << " " << vp << " / " << lim << "\n";
                             // cout << nx << " " << ny << endl;
@@ -146,7 +147,7 @@ namespace liq
                         auto [t, prop, end] = propagate_flow(nx, ny, vp);
                         ret += t;
                         if (prop) {
-                            velocity_flow.add(x, y, dx, dy, t);
+                            velocity_flow.add(x, y, dx, dy, (VFType)t);
                             last_use[x][y] = UT;
                             // cerr << x << " " << y << " -> " << nx << " " << ny << " " << t << " / " << lim << "\n";
                             // cout << end.first << " " << end.second << endl;
@@ -226,7 +227,7 @@ namespace liq
                         break;
                     }
 
-                    VType p = VType::random01(rnd) * sum;
+                    VType p = (VType)Fixed<64, 32>::random01(rnd) * sum;
                     size_t d = std::ranges::upper_bound(tres, p) - tres.begin();
 
                     auto [dx, dy] = deltas[d];
@@ -256,9 +257,9 @@ namespace liq
             }
         void exec(uint32_t Time, VType g = 0.1)
         {
-            cout << "exec\n";
+            cout << "execst\n";
             for (size_t i = 0; i < Time; ++i) {
-                
+                // std::cout << "tick " << i << std::endl;
                 PType total_delta_p = 0;
                 // Apply external forces
                 for (size_t x = 0; x < N; ++x) {
@@ -269,7 +270,7 @@ namespace liq
                             velocity.add(x, y, 1, 0, g);
                     }
                 }
-
+                // cout << "forces\n";
                 // Apply forces from p
                 memcpy(old_p, p, sizeof(p));
                 for (size_t x = 0; x < N; ++x) {
@@ -282,13 +283,13 @@ namespace liq
                                 PType delta_p = old_p[x][y] - old_p[nx][ny];
                                 PType force = delta_p;
                                 VType &contr = velocity.get(nx, ny, -dx, -dy);
-                                if (contr * rho[(int) field[nx][ny]] >= force) {
-                                    contr -= force / rho[(int) field[nx][ny]];
+                                if ((PType)contr * rho[(int) field[nx][ny]] >= force) {
+                                    contr -= (VType)(force / rho[(int) field[nx][ny]]);
                                     continue;
                                 }
-                                force -= contr * rho[(int) field[nx][ny]];
+                                force -= (PType)contr * rho[(int) field[nx][ny]];
                                 contr = 0;
-                                velocity.add(x, y, dx, dy, force / rho[(int) field[x][y]]);
+                                velocity.add(x, y, dx, dy, (VType)(force / rho[(int) field[x][y]]));
                                 p[x][y] -= force / dirs[x][y];
                                 total_delta_p -= force / dirs[x][y];
                             }
@@ -296,7 +297,7 @@ namespace liq
                         // cout << "deltas\n";
                     }
                 }
-
+                // cout << "flow\n";
                 // Make flow from velocities
                 velocity_flow = {};
                 bool prop = false;
@@ -314,7 +315,7 @@ namespace liq
                         }
                     }
                 } while (prop);
-
+                // cout << "p\n";
                 // Recalculate p with kinetic energy
                 for (size_t x = 0; x < N; ++x) {
                     for (size_t y = 0; y < M; ++y) {
@@ -322,12 +323,12 @@ namespace liq
                             continue;
                         for (auto [dx, dy] : deltas) {
                             VType old_v = velocity.get(x, y, dx, dy);
-                            VType new_v = velocity_flow.get(x, y, dx, dy);
+                            VType new_v = (VType)velocity_flow.get(x, y, dx, dy);
                             if (old_v > 0) {
                                 // cout << new_v.v << " " << old_v.v << endl;
                                 assert(new_v <= old_v);
                                 velocity.get(x, y, dx, dy) = new_v;
-                                PType force = (old_v - new_v) * rho[(int) field[x][y]];
+                                PType force = (PType)(old_v - new_v) * rho[(int) field[x][y]];
                                 if (field[x][y] == '.')
                                     force *= 0.8;
                                 if (field[x + dx][y + dy] == '#') {
@@ -350,7 +351,7 @@ namespace liq
                 for (size_t x = 0; x < N; ++x) {
                     for (size_t y = 0; y < M; ++y) {
                         if (field[x][y] != '#' && last_use[x][y] != UT) {
-                            if (VType::random01(rnd) < move_prob(x, y)) {
+                            if ((VType)Fixed<64, 32>::random01(rnd) < move_prob(x, y)) {
                                 prop = true;
                                 propagate_move(x, y, true);
                             } else {
@@ -451,14 +452,15 @@ namespace liq
                     int nx = x + dx, ny = y + dy;
                     if (field[nx][ny] != '#' && last_use[nx][ny] < UT) {
                         VType cap = velocity.get(x, y, dx, dy);
-                        VType flow = velocity_flow.get(x, y, dx, dy);
+                        VType flow = (VType)velocity_flow.get(x, y, dx, dy);
+                        // cout << flow << " " << cap << endl;
                         if (flow == cap) {
                             continue;
                         }
                         // assert(v >= velocity_flow.get(x, y, dx, dy));
                         auto vp = min(lim, cap - flow);
                         if (last_use[nx][ny] == UT - 1) {
-                            velocity_flow.add(x, y, dx, dy, vp);
+                            velocity_flow.add(x, y, dx, dy, (VFType)vp);
                             last_use[x][y] = UT;
                             // cerr << x << " " << y << " -> " << nx << " " << ny << " " << vp << " / " << lim << "\n";
                             // cout << nx << " " << ny << endl;
@@ -467,7 +469,7 @@ namespace liq
                         auto [t, prop, end] = propagate_flow(nx, ny, vp);
                         ret += t;
                         if (prop) {
-                            velocity_flow.add(x, y, dx, dy, t);
+                            velocity_flow.add(x, y, dx, dy, (VFType)t);
                             last_use[x][y] = UT;
                             // cerr << x << " " << y << " -> " << nx << " " << ny << " " << t << " / " << lim << "\n";
                             // cout << end.first << " " << end.second << endl;
@@ -547,7 +549,7 @@ namespace liq
                         break;
                     }
 
-                    VType p = VType::random01(rnd) * sum;
+                    VType p = (VType)Fixed<64, 32>::random01(rnd) * sum;
                     size_t d = std::ranges::upper_bound(tres, p) - tres.begin();
 
                     auto [dx, dy] = deltas[d];
@@ -577,9 +579,9 @@ namespace liq
             }
         void exec(uint32_t Time, VType g = 0.1)
         {
-            cout << "exec\n";
+            cout << "execst\n";
             for (size_t i = 0; i < Time; ++i) {
-                
+                // std::cout << "tick " << i << std::endl;
                 PType total_delta_p = 0;
                 // Apply external forces
                 for (size_t x = 0; x < N; ++x) {
@@ -590,7 +592,7 @@ namespace liq
                             velocity.add(x, y, 1, 0, g);
                     }
                 }
-
+                // cout << "forces\n";
                 // Apply forces from p
                 old_p = p;
                 for (size_t x = 0; x < N; ++x) {
@@ -603,13 +605,13 @@ namespace liq
                                 PType delta_p = old_p[x][y] - old_p[nx][ny];
                                 PType force = delta_p;
                                 VType &contr = velocity.get(nx, ny, -dx, -dy);
-                                if (contr * rho[(int) field[nx][ny]] >= force) {
-                                    contr -= force / rho[(int) field[nx][ny]];
+                                if ((PType)contr * rho[(int) field[nx][ny]] >= force) {
+                                    contr -= (VType)(force / rho[(int) field[nx][ny]]);
                                     continue;
                                 }
-                                force -= contr * rho[(int) field[nx][ny]];
+                                force -= (PType)contr * rho[(int) field[nx][ny]];
                                 contr = 0;
-                                velocity.add(x, y, dx, dy, force / rho[(int) field[x][y]]);
+                                velocity.add(x, y, dx, dy, (VType)(force / rho[(int) field[x][y]]));
                                 p[x][y] -= force / dirs[x][y];
                                 total_delta_p -= force / dirs[x][y];
                             }
@@ -617,9 +619,9 @@ namespace liq
                         // cout << "deltas\n";
                     }
                 }
-
+                // cout << "flow\n";
                 // Make flow from velocities
-                velocity_flow = DynamicVectorField<VFType>(N, M);;
+                velocity_flow = DynamicVectorField<VFType>(N, M);
                 bool prop = false;
                 do {
                     UT += 2;
@@ -635,7 +637,7 @@ namespace liq
                         }
                     }
                 } while (prop);
-
+                // cout << "p\n";
                 // Recalculate p with kinetic energy
                 for (size_t x = 0; x < N; ++x) {
                     for (size_t y = 0; y < M; ++y) {
@@ -643,12 +645,12 @@ namespace liq
                             continue;
                         for (auto [dx, dy] : deltas) {
                             VType old_v = velocity.get(x, y, dx, dy);
-                            VType new_v = velocity_flow.get(x, y, dx, dy);
+                            VType new_v = (VType)velocity_flow.get(x, y, dx, dy);
                             if (old_v > 0) {
                                 // cout << new_v.v << " " << old_v.v << endl;
                                 assert(new_v <= old_v);
                                 velocity.get(x, y, dx, dy) = new_v;
-                                PType force = (old_v - new_v) * rho[(int) field[x][y]];
+                                PType force = (PType)(old_v - new_v) * rho[(int) field[x][y]];
                                 if (field[x][y] == '.')
                                     force *= 0.8;
                                 if (field[x + dx][y + dy] == '#') {
@@ -671,7 +673,7 @@ namespace liq
                 for (size_t x = 0; x < N; ++x) {
                     for (size_t y = 0; y < M; ++y) {
                         if (field[x][y] != '#' && last_use[x][y] != UT) {
-                            if (VType::random01(rnd) < move_prob(x, y)) {
+                            if ((VType)Fixed<64, 32>::random01(rnd) < move_prob(x, y)) {
                                 prop = true;
                                 propagate_move(x, y, true);
                             } else {
@@ -697,6 +699,5 @@ namespace liq
                 }
             }
         }
-
     };
 }

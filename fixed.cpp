@@ -20,7 +20,7 @@ struct Fixed
 
     static Fixed random01(auto rnd)
     {
-        return Fixed<N, K, fast>::from_raw((rnd() & ((1 <<  K) - 1)));
+        return Fixed<N, K, fast>::from_raw((rnd() & (((intmax_t)1 <<  K) - 1)));
     }
 
     constexpr Fixed() : v(0)
@@ -29,15 +29,15 @@ struct Fixed
     }
     constexpr Fixed(int v_) : Fixed()
     {
-        v = v_ << K;
+        v = (intmax_t)v_ << K;
     }
     constexpr Fixed(float f): Fixed()
     {
-        v = f * (1 << K);
+        v = f * ((intmax_t)1 << K);
     }
     constexpr Fixed(double f): Fixed()
     {
-        v = f * (1 << K);
+        v = f * ((intmax_t)1 << K);
     }
 
 
@@ -55,9 +55,18 @@ struct Fixed
     }
 
     template<int N_, int K_, bool fast_ = false>
-    explicit operator Fixed<N_, K_, fast_>()
+    explicit constexpr operator Fixed<N_, K_, fast_>()
     {
-        return Fixed<N_, K_, fast_>(*this);
+        Fixed<N_, K_, fast_> fx = Fixed<N_, K_, fast_>(0);
+        if constexpr (K_ > K)
+        {
+            fx.v = (intmax_t)v << (K_ - K);
+        }
+        else
+        {
+            fx.v = (intmax_t)v >> (K - K_);
+        }
+        return fx;
     }
 
     static constexpr Fixed from_raw(intmax_t x) {
@@ -66,54 +75,55 @@ struct Fixed
         return ret;
     }
 
-    const Fixed &add_impl(const Fixed &b) {
-        v += b.v;
-        return *this;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend Fixed operator+(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.add_impl(b);
-    }
+    // const Fixed &add_impl(const Fixed &b) {
+    //     v += b.v;
+    //     return *this;
+    // }
+    // template<int N_, int K_, bool fast_ = false>
+    // friend Fixed operator+(Fixed a, Fixed<N_, K_, fast_> b) {
+    //     return a.add_impl(b);
+    // }
     friend Fixed operator+(Fixed a, Fixed b) {
         return Fixed::from_raw(a.v + b.v);
     }
 
-    const Fixed &sub_impl(const Fixed &b) {
-        v -= b.v;
-        return *this;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend Fixed operator-(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.sub_impl(b);
-    }
+    // const Fixed &sub_impl(const Fixed &b) {
+    //     v -= b.v;
+    //     return *this;
+    // }
+    // template<int N_, int K_, bool fast_ = false>
+    // friend Fixed operator-(Fixed a, Fixed<N_, K_, fast_> b) {
+    //     return a.sub_impl(b);
+    // }
     friend Fixed operator-(Fixed a, Fixed b) {
         return Fixed::from_raw(a.v - b.v);
     }
 
-    const Fixed &mult_impl(const Fixed &b) {
-        v *= b.v;
-        v = v >> K;
-        return *this;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend Fixed operator*(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.mult_impl(b);
-    }
+    // const Fixed &mult_impl(const Fixed &b) {
+    //     v *= b.v;
+    //     v = v >> K;
+    //     return *this;
+    // }
+    // template<int N_, int K_, bool fast_ = false>
+    // friend Fixed operator*(Fixed a, Fixed<N_, K_, fast_> b) {
+    //     return a.mult_impl(b);
+    // }
     friend Fixed operator*(Fixed a, Fixed b) {
         return Fixed::from_raw(((intmax_t) a.v * b.v) >> K);
     }
 
-    const Fixed &div_impl(const Fixed &b) {
-        v = v << K;
-        v /= b.v;
-        return *this;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend Fixed operator/(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.div_impl(b);
-    }
+    // const Fixed &div_impl(const Fixed &b) {
+    //     v = v << K;
+    //     v /= b.v;
+    //     return *this;
+    // }
+    // template<int N_, int K_, bool fast_ = false>
+    // friend Fixed operator/(Fixed a, Fixed<N_, K_, fast_> b) {
+    //     // return a.div_impl(b);
+    //     return Fixed((double)a / (double)b);
+    // }
     friend Fixed operator/(Fixed a, Fixed b) {
-        return Fixed::from_raw(((intmax_t) a.v << K) / b.v);
+        return Fixed((double)a / (double)b);
     }
 
     friend Fixed &operator+=(Fixed &a, Fixed b) {
@@ -149,48 +159,17 @@ struct Fixed
 
     explicit constexpr operator float() { return float(v) / ((intmax_t)1 << K); }
     explicit constexpr operator double() { return double(v) / ((intmax_t)1 << K); }
-    auto operator<=>(const Fixed&) const = default;
+    // auto operator<=>(const Fixed&) const = default;
     bool operator==(const Fixed&) const = default;
 
-    bool more_impl(const Fixed &b) {
-        return v > b.v;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend bool operator>(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.more_impl(b);
-    }
     bool operator>(const Fixed& cmp) const {
         return v > cmp.v;
-    }
-
-    bool less_impl(const Fixed &b) {
-        return v < b.v;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend bool operator<(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.less_impl(b);
     }
     bool operator<(const Fixed& cmp) const {
         return v < cmp.v;
     }
-
-    bool moreeq_impl(const Fixed &b) {
-        return v >= b.v;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend bool operator>=(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.moreeq_impl(b);
-    }
     bool operator>=(const Fixed& cmp) const {
         return v >= cmp.v;
-    }
-
-    bool lesseq_impl(const Fixed &b) {
-        return v < b.v;
-    }
-    template<int N_, int K_, bool fast_ = false>
-    friend bool operator<=(Fixed a, Fixed<N_, K_, fast_> b) {
-        return a.lesseq_impl(b);
     }
     bool operator<=(const Fixed& cmp) const {
         return v <= cmp.v;

@@ -112,7 +112,7 @@ constexpr bool decl_types_3()
     ((void)decl_types_2<Args, Args...>(), ...);
     return true;
 }
-
+ 
 volatile bool compiled = decl_types_3<TYPES>();
 
 int main()
@@ -129,15 +129,27 @@ int main()
     liq::DynamicFieldEmulator<Fixed<32, 16>, Fixed<64, 16>, Fixed<16, 16>> emul = 
         liq::DynamicFieldEmulator<Fixed<32, 16>, Fixed<64, 16>, Fixed<16, 16>>(14, 10, field);
       
-    liq::FieldEmulator<Fixed<32, 16>, Fixed<64, 16>, Fixed<16, 16>, 14, 10> emul_ = 
-        liq::FieldEmulator<Fixed<32, 16>, Fixed<64, 16>, Fixed<16, 16>, 14, 10>(field);
+    liq::FieldEmulator<Fixed<64, 8>, Fixed<64, 16>, float, 14, 10> emul_ = 
+        liq::FieldEmulator<Fixed<64, 8>, Fixed<64, 16>, float, 14, 10>(field);
 
-    emul.set_vel(' ', 0.01);
-    emul.set_vel('.', 1000);
-    emul.exec(T, 0.1);    
+    // emul.set_vel(' ', 0.01);
+    // emul.set_vel('.', 1000);
+    // emul.exec(T, 0.1);    
 
     emul_.set_vel(' ', 0.01);
     emul_.set_vel('.', 1000);
     emul_.exec(T, 0.1);  
 
+    // Fixed<64, 16> fx1 = 34.345345;
+    // Fixed<32, 8> fx2 = 34.111;
+    // std::cout << fx1 << std::endl << fx2 << std::endl;
+    // std::cout << fx1 * Fixed<64, 16>(fx2) << std::endl;
+    // std::cout << fx1 / Fixed<64, 16>(fx2) << std::endl;
+    // std::cout << fx1 + Fixed<64, 16>(fx2) << std::endl;
+    // std::cout << fx1 - Fixed<64, 16>(fx2) << std::endl;
+    // std::cout << Fixed<32, 8>(fx1) * fx2 << std::endl;
+    // std::cout << Fixed<32, 8>(fx1) / fx2 << std::endl;
+    // std::cout << Fixed<32, 8>(fx1) + fx2 << std::endl;
+    // std::cout << Fixed<32, 8>(fx1) - fx2 << std::endl;
+    // std::cout << (fx1 > fx2);
 }
