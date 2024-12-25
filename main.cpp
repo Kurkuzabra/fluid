@@ -113,7 +113,7 @@ constexpr bool decl_types_3()
     return true;
 }
 
-constexpr bool compiled = decl_types_3<TYPES>();
+volatile bool compiled = decl_types_3<TYPES>();
 
 int main()
 {
